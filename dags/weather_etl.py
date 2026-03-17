@@ -57,7 +57,7 @@ def weather_etl():
         Load step: Save transformed data into a SQLite database.
         """
         import os
-        db_path = "/tmp/weather_data.db"
+        db_path = "/opt/airflow/dags/weather_data.db"
         # Using a context manager for the DB connection
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
