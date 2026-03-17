@@ -24,7 +24,7 @@ The code in `dags/weather_etl.py` demonstrates a simple ETL pipeline using Airfl
 
 * **Extract**: Fetches dummy JSON data representing weather conditions.
 * **Transform**: Cleans the data, converting temperatures from Kelvin to Celsius.
-* **Load**: Saves the transformed data into a local SQLite database (`/tmp/weather_data.db`).
+* **Load**: Saves the transformed data into a local SQLite database (`/opt/airflow/dags/weather_data.db` inside the container, mapping to `./dags/weather_data.db` locally).
 
 ### Key Airflow Features Used:
 * **`@dag` decorator**: Defines the DAG, its schedule, and its metadata.
@@ -63,9 +63,9 @@ The code in `dags/weather_etl.py` demonstrates a simple ETL pipeline using Airfl
     If a task fails (or even if it succeeds), you can click on the task instance in the Graph or Grid view and select "Logs" to see the output.
 
 8.  **Verify the Output**:
-    The final `load` task saves data to a SQLite database. If you have SQLite installed locally, or if you exec into the worker container (or scheduler container, since we are using LocalExecutor), you can inspect the file:
+    The final `load` task saves data to a SQLite database. Because we mapped the `dags` folder, you can inspect the file directly from your host machine if you have SQLite installed, or by exec-ing into the container:
     ```bash
-    sqlite3 /tmp/weather_data.db "SELECT * FROM weather;"
+    sqlite3 ./dags/weather_data.db "SELECT * FROM weather;"
     ```
 
 9.  **Stop the Environment**:
