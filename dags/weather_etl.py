@@ -4,7 +4,7 @@ import os
 import datetime
 from airflow.decorators import dag, task
 from airflow.utils.task_group import TaskGroup
-from plugins.custom_operators import FileSchemaValidatorOperator
+from custom_operators import FileSchemaValidatorOperator
 
 # DAG: A Directed Acyclic Graph. In Airflow, this is a collection of all the tasks you want to run,
 # organized in a way that reflects their relationships and dependencies.
