@@ -1,12 +1,15 @@
 import json
 import sqlite3
+import os
 import datetime
 from airflow.decorators import dag, task
+from airflow.utils.task_group import TaskGroup
+from plugins.custom_operators import FileSchemaValidatorOperator
 
 # DAG: A Directed Acyclic Graph. In Airflow, this is a collection of all the tasks you want to run,
 # organized in a way that reflects their relationships and dependencies.
 @dag(
-    schedule_interval="@daily",
+    schedule="@daily",
     start_date=datetime.datetime(2023, 1, 1),
     catchup=False,
     tags=["educational", "etl"]
@@ -52,6 +55,18 @@ def weather_etl():
         return cleaned_data
 
     @task
+    def data_quality_check(cleaned_data: list):
+        """
+        Data Quality check step: Ensures no nulls and correct data types.
+        """
+        for entry in cleaned_data:
+            if entry.get("temp_c") is None:
+                raise ValueError(f"Data quality check failed: temp_c is null for city {entry.get('city')}")
+            if not isinstance(entry.get("temp_c"), (float, int)):
+                raise ValueError(f"Data quality check failed: temp_c is not numeric for city {entry.get('city')}")
+        print("Data quality check passed.")
+
+    @task
     def load(cleaned_data: list):
         """
         Load step: Save transformed data into a SQLite database.
@@ -78,10 +93,35 @@ def weather_etl():
             conn.commit()
             print(f"Successfully loaded {len(cleaned_data)} records into {db_path}")
 
+    @task(trigger_rule="one_failed")
+    def critical_alert():
+        print("CRITICAL ALERT: Data quality check failed!")
+
+    # Write a dummy schema file for the FileSchemaValidatorOperator
+    dummy_schema_path = "/tmp/dummy_schema.json"
+    if not os.path.exists(dummy_schema_path):
+        with open(dummy_schema_path, "w") as f:
+            json.dump([{"key1": "value1", "key2": "value2"}], f)
+
+    validate_schema = FileSchemaValidatorOperator(
+        task_id="validate_schema",
+        filepath=dummy_schema_path,
+        expected_keys=["key1", "key2"]
+    )
+
     # Set up the dependencies
-    raw_data = extract()
-    transformed_data = transform(raw_data)
-    load(transformed_data)
+    with TaskGroup(group_id="etl_pipeline") as etl_pipeline:
+        raw_data = extract()
+        transformed_data = transform(raw_data)
+        dq = data_quality_check(transformed_data)
+        load_task = load(transformed_data)
+
+        raw_data >> transformed_data >> dq >> load_task
+
+    alert_task = critical_alert()
+
+    validate_schema >> etl_pipeline
+    dq >> alert_task
 
 # Invoke the DAG definition
 weather_etl()

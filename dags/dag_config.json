@@ -1,0 +1,12 @@
+[
+  {
+    "dag_id": "dynamic_dag_1",
+    "schedule": "@daily",
+    "description": "A dynamic DAG generated from config"
+  },
+  {
+    "dag_id": "dynamic_dag_2",
+    "schedule": "@hourly",
+    "description": "Another dynamic DAG generated from config"
+  }
+]
